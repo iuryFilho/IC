@@ -59,7 +59,7 @@ def solver(
 
 
 def flog(log) -> str:
-    return np.array2string(log, precision=8, floatmode="fixed")
+    return np.array2string(log, suppress_small=True)
 
 
 def main():
@@ -70,12 +70,16 @@ def main():
     B0 = np.array([[1, 0], [0, 1]])
 
     x, log = solver(x0, B0, F1)
+    print("x0:")
+    print(np.array2string(x0))
+    print("B0:")
+    print(np.array2string(B0))
     print("Solution found:")
     print(x)
     print("Log:")
     for i in range(len(log["xk"])):
         print(
-            f"x{i} = {flog(log['xk'][i])}, F{i} = {flog(log['Fxk'][i])}, norm(F{i}) = {flog(norm(log['Fxk'][i]))}"
+            f"x{i} = {flog(log['xk'][i])}, F{i} = {flog(log['Fxk'][i])}, ||F{i}|| = {flog(norm(log['Fxk'][i]))}"
         )
 
 
