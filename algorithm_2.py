@@ -19,12 +19,31 @@ def _eta(k: int):
     return 1 / ((k + 1) ** 2)
 
 
+def secant(
+    x: NDArray,
+    y: NDArray,
+    g_list: list[Callable[[NDArray], NDArray]],
+) -> NDArray:
+    n = len(x)
+    res = np.ndarray((n, n))
+    x0y1 = np.ndarray([x[0], y[1]])
+    for i in range(n):
+        gx0y1 = g_list[i](x0y1)
+        res[i][0] = (gx0y1 - g_list[i](np.ndarray([y[0], y[1]]))) / (x[0] - y[0])
+        res[i][1] = (g_list[i](np.ndarray([x[0], x[1]])) - gx0y1) / (x[1] - y[1])
+    return res
+
+
+def def_g(g_list):
+    return lambda x: np.array([g(x) for g in g_list])
+
+
 def solver(
     x0: NDArray,
     x1: NDArray,
     B0: NDArray,
     f: Callable[[NDArray], NDArray],
-    g: Callable[[NDArray], NDArray],
+    g_list: list[Callable[[NDArray], NDArray]],
     th: float = 0.5,
     s: float = 0.5,
     tol: float = 10e-4,
@@ -32,13 +51,13 @@ def solver(
     t_max: float = 2 / 3,
     eta: Callable[[Number], float] = _eta,
 ):
+    g = def_g(g_list)
     fg = lambda x: f(x) + g(x)
     xk_1 = x0
     xk = x1
     Bk = B0
     fgxk = fg(xk)
-    # TODO [ xk-1 , xk ; g ]
-    sec = None
+    sec = secant(xk_1, xk, g_list)
     dk = find_dk(Bk, fgxk, sec)
     a = 1
 
@@ -58,7 +77,8 @@ def solver(
             sk = new_xk - xk
             yk = new_fgxk - fgxk
             Bk = get_new_Bk(Bk, sk, yk)
-            dk = find_dk(Bk, new_fgxk)
+            sec = secant(xk, new_xk, g_list)
+            dk = find_dk(Bk, new_fgxk, sec)
             xk_1 = xk
             xk = new_xk
             fgxk = new_fgxk
@@ -75,16 +95,16 @@ def main():
     def f1(x: NDArray) -> NDArray:
         return np.array([x[0] ** 2 - x[1], x[0] + x[1]])
 
-    def g1(x: NDArray) -> NDArray:
-        return np.array(
-            [x[0] ** 2 - x[1] + 1 + abs(x[0] - 1) / 9, x[0] + x[1] - 7 + abs(x[1]) / 9]
-        )
+    g1_list = [
+        lambda x: x[0] ** 2 - x[1] + 1 + abs(x[0] - 1) / 9,
+        lambda x: x[0] + x[1] - 7 + abs(x[1]) / 9,
+    ]
 
     x0 = np.array([1, 0])
     x1 = np.array([1, 1])
     B0 = np.array([[1, 0], [0, 1]])
 
-    x, log = solver(x0, x1, B0, f1, g1)
+    x, log = solver(x0, x1, B0, f1, g1_list)
     print("x0:")
     print(np.array2string(x0))
     print("x1:")
