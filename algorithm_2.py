@@ -25,12 +25,17 @@ def secant(
     g_list: list[Callable[[NDArray], NDArray]],
 ) -> NDArray:
     n = len(x)
-    res = np.ndarray((n, n))
-    x0y1 = np.ndarray([x[0], y[1]])
-    for i in range(n):
-        gx0y1 = g_list[i](x0y1)
-        res[i][0] = (gx0y1 - g_list[i](np.ndarray([y[0], y[1]]))) / (x[0] - y[0])
-        res[i][1] = (g_list[i](np.ndarray([x[0], x[1]])) - gx0y1) / (x[1] - y[1])
+    res = np.empty((n, n))
+    for j in range(n):
+        a = y.copy()
+        b = y.copy()
+        a[: j + 1] = x[: j + 1]
+        b[:j] = x[:j]
+        for i in range(n):
+            res_x = g_list[i](a)
+            res_y = g_list[i](b)
+            res_dif = np.float64(x[j] - y[j])
+            res[i][j] = (res_x - res_y) / res_dif
     return res
 
 
@@ -46,7 +51,7 @@ def solver(
     g_list: list[Callable[[NDArray], NDArray]],
     th: float = 0.5,
     s: float = 0.5,
-    tol: float = 10e-4,
+    tol: float = 1e-4,
     t_min: float = 1 / 3,
     t_max: float = 2 / 3,
     eta: Callable[[Number], float] = _eta,
@@ -100,7 +105,7 @@ def main():
         lambda x: x[0] + x[1] - 7 + abs(x[1]) / 9,
     ]
 
-    x0 = np.array([1, 0])
+    x0 = np.array([0, 0])
     x1 = np.array([1, 1])
     B0 = np.array([[1, 0], [0, 1]])
 
